@@ -59,15 +59,20 @@ class Node
 
 public:
   Node() {};
+  
   Point2D point_;
-  int nodeID_;
-  int parentID_;
+  Node* parent_ptr_;
 
-  Node(Point2D point, int nodeID, int parent_ID)
+  Node(Point2D point, Node* parent_ptr)
   {
     point_ = point;
-    nodeID_ = nodeID;
-    parentID_ = parent_ID;
+    parent_ptr_ = parent_ptr;
+  }
+
+  Node(Point2D point)
+  {
+    point_ = point;
+    parent_ptr_ = NULL;
   }
   
 };
