@@ -205,10 +205,12 @@ private:
    */
   bool notCollision(Point 2D a, Point2D b);
 
+  /**
+   * Return the vector of all the nodes in the rrtree leading to the goal
+   */
+  std::vector<Point2D> backTracking();
 
-
-
-
+  
 
   ros::NodeHandle * nh_;
   ros::NodeHandle private_nh_;

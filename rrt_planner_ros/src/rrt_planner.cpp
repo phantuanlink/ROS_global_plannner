@@ -131,7 +131,7 @@ void RRTPlanner::plan()
   int height_ = map_->rows;
   int width_ = map->cols;
   bool path_found = false;
-  Node start_node(init_pose_, 0, -1); //Make the start node with ID = 0 and parent ID = -1, means no parents
+  Node start_node(init_pose_, -1); //Make the start node with ID = 0 and parent ID = -1, means no parents
   rrtree.push_back(start_node);
 
   int count_samples = 1; //Keep track the number of created samples
@@ -258,7 +258,23 @@ double RRTPlanner::distance(Point2D a, Point2D b)
 
 std::vector<Point2D> RRTPlanner::backTracking()
 {
-  //TO DO
+  std::vector<Point2D> path;
+  Node* cur_node;
+  
+  cur_node = &(rrtree.back());
+
+  do
+  {
+    path.push_back(cur_node->point_);
+
+    // draw the line to visualize the global path
+    drawLine(cur_node->point_, rrtree.at(cur_node->parentID_).point_, cv::Scalar(12, 255, 43), 3);
+    
+    cur_node = &(rrtree.at(cur_node->parentID_));
+ 
+  } while (cur_node->parentID != -1);
+
+  return path;
 }
 
 
