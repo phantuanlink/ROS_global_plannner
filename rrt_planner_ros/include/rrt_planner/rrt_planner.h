@@ -4,7 +4,7 @@
 #include <random>
 #include <iostream>
 #include <vector>
-#include <math.h>
+#include <cmath>
 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -56,27 +56,25 @@ private:
  */
 class Node
 {
-
 public:
   Node() {};
   
   Point2D point_;
-  Node* parent_ptr_;
+  int parentID_;
 
-  Node(Point2D point, Node* parent_ptr)
+  Node(Point2D point, int parentID)
   {
     point_ = point;
-    parent_ptr_ = parent_ptr;
+    parentID_ = parentID;
   }
 
   Node(Point2D point)
   {
     point_ = point;
-    parent_ptr_ = NULL;
+    parentID_ = NULL;
   }
   
 };
-
 
 /**
  * Main class which implements the RRT algorithm
@@ -179,6 +177,39 @@ private:
    */
   inline int toIndex(int, int);
 
+  ////////////////////// ADDED FUNCTIONS HERE ///////////////////
+  
+  /**
+   * Calculate distance between two points
+   */
+  double distance(Point2D a, Point2D b);
+
+  /**
+   * Generate points in C_free
+   */
+  Point2D RRTPplaner::randomGenerator(int height_, int width_);
+
+  /**
+   * Find the index of the nearest Node to the randon point
+   */
+  int findNearestNode(Point2D rand_point);
+
+  /**
+   * Return the coordinates of the points based on rand_poind and closet point
+   */
+  Point2D findNew(Point2D rand_point, Point2D nearest_point);
+
+  /**
+   * Return whether the line between two points is obstructed by obstacles
+   * Checking around 4 points in the middle
+   */
+  bool notCollision(Point 2D a, Point2D b);
+
+
+
+
+
+
   ros::NodeHandle * nh_;
   ros::NodeHandle private_nh_;
 
@@ -199,7 +230,7 @@ private:
 
   //Some Parameters that user define, gonna use dynamic reconfiguration to change paratmeters on the spot
   int num_samples; // total number of samples
-  int k; // the max length of an edge
+  double k; // the max length of an edge
   int goal_bias; // the frequency considering goal point as one of the random points
 
   std::vector<Node> rrtree;  
