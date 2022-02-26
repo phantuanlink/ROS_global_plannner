@@ -71,7 +71,7 @@ public:
   Node(Point2D point)
   {
     point_ = point;
-    parentID_ = NULL;
+    parentID_ = -1;
   }
   
 };
@@ -115,9 +115,8 @@ private:
   /**
    * Publishes the path calculated by RRT as a nav_msgs::Path msg
    *
-   * THE CANDIDATE IS REQUIRED TO IMPLEMENT THE LOGIC IN THIS FUNCTION
    */
-  void publishPath();
+  void publishPath(const std::vector<Point2D>& path);
 
   /**
    * Utility function to check if a given point is free/occupied in the map
@@ -187,7 +186,7 @@ private:
   /**
    * Generate points in C_free
    */
-  Point2D RRTPplaner::randomGenerator(int height_, int width_);
+  Point2D randomPointGenerator(int height_, int width_);
 
   /**
    * Find the index of the nearest Node to the randon point
@@ -203,7 +202,7 @@ private:
    * Return whether the line between two points is obstructed by obstacles
    * Checking around 4 points in the middle
    */
-  bool notCollision(Point 2D a, Point2D b);
+  bool notCollision(Point2D a, Point2D b);
 
   /**
    * Return the vector of all the nodes in the rrtree leading to the goal

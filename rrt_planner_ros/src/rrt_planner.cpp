@@ -129,7 +129,7 @@ void RRTPlanner::plan()
   // TODO: Fill out this function with the RRT algorithm logic to plan a collision-free
   //       path through the map starting from the initial pose and ending at the goal pose
   int height_ = map_->rows;
-  int width_ = map->cols;
+  int width_ = map_->cols;
   bool path_found = false;
   Node start_node(init_pose_, -1); //Make the start node with ID = 0 and parent ID = -1, means no parents
   rrtree.push_back(start_node);
@@ -145,7 +145,7 @@ void RRTPlanner::plan()
   {
     do
     {
-      rand_point = randomGenerator(height_, width_);
+      rand_point = randomPointGenerator(height_, width_);
       nearest_node_idx = findNearestNode(rand_point);
       new_point = findNew(rand_point, rrtree.at(nearest_node_idx).point_);
     } while (notCollision(rrtree.at(nearest_node_idx).point_, new_point));
@@ -157,9 +157,9 @@ void RRTPlanner::plan()
     if ((distance(new_point, goal_) <= k) && (notCollision(new_point, goal_)))
     {
       ROS_INFO("YAYYYYYY!! THE GOAL IS REACHED!!! NICE");
-      ROS_INFO("SOLUTION IS FOUND AFTER %d ITERATIONS", rrtree.size())
+      ROS_INFO("SOLUTION IS FOUND AFTER %d ITERATIONS", rrtree.size());
       path_found = true;
-      Node goal_node(goal_, rrt.size()-1); //the goal node has the last node as its the parent node
+      Node goal_node(goal_, rrtree.size()-1); //the goal node has the last node as its the parent node
       rrtree.push_back(goal_node);
       break;
     }
@@ -171,23 +171,26 @@ void RRTPlanner::plan()
     ROS_INFO("PUBLISHING THE PATH RIGHT NOW!! DO YOU SEE IT IN THE MAP");
     publishPath(path);
   } else {
-    ROS_INFO("THERE IS NO SOLUTION THO!!! try with more samples and smaller step size please!!")
+    ROS_INFO("THERE IS NO SOLUTION THO!!! try with more samples and smaller step size please!!");
   }
 }
 
-Point2D RRTPplaner::randomGenerator(int height_, int width_)
+Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
 {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> dis_height(0, height_);
   std::uniform_int_distribution<int> dis_width(0, width_);
 
+  Point2D rand_pt;
+
   do
   {
     int x = dis_width(generator);
     int y = dis_height(generator);
-    Point2D rand_pt(x, y);
-  } while (isPointUnoccupied(rand_pt))
-
+    rand_pt.x(x);
+    rand_pt.y(y);
+  } while (isPointUnoccupied(rand_pt));
+  
   return rand_pt;
 }
 
@@ -195,10 +198,10 @@ int RRTPlanner::findNearestNode(Point2D rand_point)
 {
   int index = 0;
 
-  double closet_dis = distance(rand_point, rrtree.front())
-  for (unsigned int i = 1; i < rrtree.size(), i++)
+  double closet_dis = distance(rand_point, rrtree.front().point_);
+  for (unsigned int i = 1; i < rrtree.size(); i++)
   {
-    if (distance(rand_point, rrtree[i]) < closet_dis)
+    if (distance(rand_point, rrtree[i].point_) < closet_dis)
     {
       index = i; //get the closet node index
     }
@@ -211,7 +214,7 @@ Point2D RRTPlanner::findNew(Point2D rand_point, Point2D nearest_point)
 {
   Point2D new_point;
   double length = k;
-  double theta = acos(rand_point.y()- nearest_point.y(), rand_point.x()- nearest_point.x());
+  double theta = atan((rand_point.y()- nearest_point.y())/(rand_point.x()- nearest_point.x()));
   if (distance(rand_point, nearest_point) < k)
   {
     length = k;
@@ -222,16 +225,12 @@ Point2D RRTPlanner::findNew(Point2D rand_point, Point2D nearest_point)
   return new_point;
 }
 
-Node RRTPlanner::addNode(Node nearest_node, Point2D new_point)
-{
-  //TO DO
-}
 
-bool RRTPlanner::notCollision(Point 2D a, Point2D b)
+bool RRTPlanner::notCollision(Point2D a, Point2D b)
 {
   Point2D mid;
-  del_x = b.x() - a.x();
-  del_y = b.y() - a.y();
+  int del_x = b.x() - a.x();
+  int del_y = b.y() - a.y();
 
   int i = 1;
   int num = 5; //the number of middle points
@@ -244,7 +243,7 @@ bool RRTPlanner::notCollision(Point 2D a, Point2D b)
       return false;
     }
   }
-  return true
+  return true;
 }
 
 double RRTPlanner::distance(Point2D a, Point2D b)
@@ -253,7 +252,7 @@ double RRTPlanner::distance(Point2D a, Point2D b)
   double del_x = (double)a.x() - (double)b.x();
   double del_y = (double)a.y() - (double)b.y();
 
-  return sqrt(pow(del_x, 2) + pow(del_y, 2))
+  return sqrt(pow(del_x, 2) + pow(del_y, 2));
 }
 
 std::vector<Point2D> RRTPlanner::backTracking()
@@ -272,14 +271,13 @@ std::vector<Point2D> RRTPlanner::backTracking()
     
     cur_node = &(rrtree.at(cur_node->parentID_));
  
-  } while (cur_node->parentID != -1);
+  } while (cur_node->parentID_ != -1);
 
   return path;
 }
 
 
-
-void RRTPlanner::publishPath(const std::vector<geometry_msgs::PoseStamped>& path)
+void RRTPlanner::publishPath(const std::vector<Point2D>& path)
 {
   // Create new Path msg
   nav_msgs::Path path_msg;
@@ -287,10 +285,11 @@ void RRTPlanner::publishPath(const std::vector<geometry_msgs::PoseStamped>& path
   path_msg.header.stamp = ros::Time::now();
 
   // TODO: Fill nav_msgs::Path msg with the path calculated by RRT
+
   path_msg.poses.resize(path.size());
-  for (auto i = path.begin(); i!= path.end(); i++)
+  for (unsigned int i = 0; i < path.size(); i++)
   {
-    path_msg.poses[i] = path[i];
+    path_msg.poses[i] = pointToPose(path[i]);
   }
 
   // Publish the calculated path
@@ -301,11 +300,11 @@ void RRTPlanner::publishPath(const std::vector<geometry_msgs::PoseStamped>& path
 
 bool RRTPlanner::isPointUnoccupied(const Point2D & p)
 {
-  x = p.x();
-  y = p.y();
+  int x = p.x();
+  int y = p.y();
 
   // TODO: Fill out this function to check if a given point is occupied/free in the map
-  if (map_->at<cv::Vec3b>(x, y) = cv::Vec3b(0, 0, 0))
+  if (map_->at<cv::Vec3b>(x, y) == cv::Vec3b(0, 0, 0))
   {
     return false;
   }
