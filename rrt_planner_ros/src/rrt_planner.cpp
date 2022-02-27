@@ -205,6 +205,7 @@ Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
   // std::uniform_int_distribution<int> dis_width(0, width_);
 
   Point2D rand_pt;
+  bool isFree = false;
 
   do
   {
@@ -214,7 +215,9 @@ Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
     int y = rand()%height_;
     rand_pt.x(x);
     rand_pt.y(y);
-  } while (isPointUnoccupied(rand_pt));
+    isFree = isPointUnoccupied(rand_pt);
+    std::cout << "point is free or not" << isFree << std::endl;
+  } while (!isFree);
   
   return rand_pt;
 }
@@ -333,11 +336,13 @@ void RRTPlanner::publishPath(const std::vector<Point2D>& path)
 
 bool RRTPlanner::isPointUnoccupied(const Point2D & p)
 {
-  int x = p.x();
-  int y = p.y();
+  //transform index of points into map_grid_
+  
+  int x_grid = map_grid_->info.height - p.x() - 1;
+  int y_grid = p.y();
 
   // TODO: Fill out this function to check if a given point is occupied/free in the map
-  if (map_->at<cv::Vec3b>(x, y) == cv::Vec3b(0, 0, 0))
+  if (map_grid_->data[toIndex(x_grid, y_grid)])
   {
     return false;
   }
