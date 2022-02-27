@@ -17,7 +17,7 @@ RRTPlanner::RRTPlanner(ros::NodeHandle * node)
 
   // Get Parameters HAHAHAH, I totally forgot about this
   private_nh_.param("max_samples_number", num_samples, 1000);
-  private_nh_.param("max_step", k, 10.0);
+  private_nh_.param("max_step", k, 5.0);
 
   // Subscribe to map topic
   map_sub_ = nh_->subscribe<const nav_msgs::OccupancyGrid::Ptr &>(
@@ -77,7 +77,7 @@ void RRTPlanner::initPoseCallback(const geometry_msgs::PoseWithCovarianceStamped
   // Convert mas to Point2D
   poseToPoint(init_pose_, msg->pose.pose);
 
-  // Reject the initial pose if the given point is occupied in the map
+  // Reject the initialy7llll pose if the given point is occupied in the map
   if (!isPointUnoccupied(init_pose_)) {
     init_pose_received_ = false;
     ROS_WARN(
@@ -214,7 +214,7 @@ Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
     int y = rand()%height_;
     rand_pt.x(x);
     rand_pt.y(y);
-  } while (isPointUnoccupied(rand_pt));
+  } while (!isPointUnoccupied(rand_pt));
   
   return rand_pt;
 }
@@ -357,7 +357,7 @@ void RRTPlanner::buildMapImage()
 
   // Fill the opencv matrix pixels with the map points
   for (int i = 0; i < map_grid_->info.height; i++) {
-    for (int j = 0; j < map_grid_->info.width; j++) {
+    for (int j = 0; j < map_grid_->info.width; j++) { 
       if (map_grid_->data[toIndex(i, j)]) {
         map_->at<cv::Vec3b>(map_grid_->info.height - i - 1, j) = cv::Vec3b(0, 0, 0);
       } else {
