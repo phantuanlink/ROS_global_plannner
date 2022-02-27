@@ -15,6 +15,10 @@ RRTPlanner::RRTPlanner(ros::NodeHandle * node)
   private_nh_.param<std::string>("map_topic", map_topic, "/map");
   private_nh_.param<std::string>("path_topic", path_topic, "/path");
 
+  // Get Parameters HAHAHAH, I totally forgot about this
+  private_nh_.param("max_samples_number", num_samples, 1000);
+  private_nh_.param("max_step", k, 10.0);
+
   // Subscribe to map topic
   map_sub_ = nh_->subscribe<const nav_msgs::OccupancyGrid::Ptr &>(
     map_topic, 1, &RRTPlanner::mapCallback, this);
@@ -130,6 +134,10 @@ void RRTPlanner::plan()
   //       path through the map starting from the initial pose and ending at the goal pose
   int height_ = map_->rows;
   int width_ = map_->cols;
+
+  std::cout << "The size of the map is" << std::endl;
+  std::cout << height_ << "   "  << width_ << std::endl;
+
   bool path_found = false;
   Node start_node(init_pose_, -1); //Make the start node with ID = 0 and parent ID = -1, means no parents
   rrtree.push_back(start_node);
@@ -138,19 +146,32 @@ void RRTPlanner::plan()
 
   Point2D rand_point;
   int nearest_node_idx;
-  Point2D new_point;  
+  Point2D new_point; 
+  int count_iterations = 0; 
 
   //Now lets make the tree
-  while (rrtree.size() < num_samples)
+  while (count_iterations < 1000)
   {
+    if (count_iterations%10 == 0)
+    {
+      ROS_INFO("Interation number %d", rrtree.size());
+    }
+
     do
     {
       rand_point = randomPointGenerator(height_, width_);
+      std::cout << rand_point.x() << "  " << rand_point.y() << std::endl;
+
       nearest_node_idx = findNearestNode(rand_point);
+      std::cout << "The nearest Node index is " << nearest_node_idx << std::endl;
+
       new_point = findNew(rand_point, rrtree.at(nearest_node_idx).point_);
-    } while (notCollision(rrtree.at(nearest_node_idx).point_, new_point));
+
+    } while (!notCollision(rrtree.at(nearest_node_idx).point_, new_point));
     
     Node new_node(new_point, nearest_node_idx); //Make a new node with the point created and its parentID
+    drawCircle(new_point, 1, cv::Scalar(12, 255, 43));
+    drawLine(new_point, rrtree[nearest_node_idx].point_,cv::Scalar(0, 0, 0));
     rrtree.push_back(new_node);
 
     //Now check whether it is reached by the goal
@@ -163,6 +184,8 @@ void RRTPlanner::plan()
       rrtree.push_back(goal_node);
       break;
     }
+
+    count_iterations++;
   }
 
   if (path_found)
@@ -177,16 +200,18 @@ void RRTPlanner::plan()
 
 Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
 {
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> dis_height(0, height_);
-  std::uniform_int_distribution<int> dis_width(0, width_);
+  // std::default_random_engine generator;
+  // std::uniform_int_distribution<int> dis_height(0, height_);
+  // std::uniform_int_distribution<int> dis_width(0, width_);
 
   Point2D rand_pt;
 
   do
   {
-    int x = dis_width(generator);
-    int y = dis_height(generator);
+    // int x = dis_width(generator);
+    // int y = dis_height(generator);
+    int x = rand()%width_;
+    int y = rand()%height_;
     rand_pt.x(x);
     rand_pt.y(y);
   } while (isPointUnoccupied(rand_pt));
@@ -213,14 +238,21 @@ int RRTPlanner::findNearestNode(Point2D rand_point)
 Point2D RRTPlanner::findNew(Point2D rand_point, Point2D nearest_point)
 {
   Point2D new_point;
+  std::cout << "Max_length" << k << std::endl;
   double length = k;
   double theta = atan((rand_point.y()- nearest_point.y())/(rand_point.x()- nearest_point.x()));
+  std::cout << theta << std::endl;
   if (distance(rand_point, nearest_point) < k)
   {
     length = k;
   }
   new_point.x(nearest_point.x() + length*cos(theta));
   new_point.y(nearest_point.y() + length*sin(theta));
+
+  std::cout << "New Points "<< std::endl;
+  std::cout << new_point.x() << "   " << new_point.y()  << std::endl;
+  
+  drawCircle(new_point, 2,cv::Scalar(12, 255, 43));
 
   return new_point;
 }
@@ -243,6 +275,7 @@ bool RRTPlanner::notCollision(Point2D a, Point2D b)
       return false;
     }
   }
+  std::cout << "Oh it is not obstructed, yay " << std::endl;
   return true;
 }
 

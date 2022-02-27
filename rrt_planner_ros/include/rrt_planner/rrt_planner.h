@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <stdlib.h>
 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -230,8 +231,8 @@ private:
   ros::Publisher path_pub_;
 
   //Some Parameters that user define, gonna use dynamic reconfiguration to change paratmeters on the spot
-  int num_samples; // total number of samples
-  double k; // the max length of an edge
+  int num_samples = 1000; // total number of samples
+  double k = 5.0; // the max length of an edge
   int goal_bias; // the frequency considering goal point as one of the random points
 
   std::vector<Node> rrtree;  
