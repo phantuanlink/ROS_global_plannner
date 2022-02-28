@@ -187,7 +187,7 @@ private:
   /**
    * Generate points in C_free
    */
-  Point2D randomPointGenerator(int height_, int width_);
+  //Point2D randomPointGenerator(const std::uniform_int_distribution<int>& dis_height_, const std::uniform_int_distribution<int>& dis_width);
 
   /**
    * Find the index of the nearest Node to the randon point
@@ -203,7 +203,7 @@ private:
    * Return whether the line between two points is obstructed by obstacles
    * Checking around 4 points in the middle
    */
-  bool notCollision(Point2D a, Point2D b);
+  bool isCollisionFreeLine(Point2D a, Point2D b);
 
   /**
    * Return the vector of all the nodes in the rrtree leading to the goal
@@ -231,11 +231,14 @@ private:
   ros::Publisher path_pub_;
 
   //Some Parameters that user define, gonna use dynamic reconfiguration to change paratmeters on the spot
-  int num_samples = 1000; // total number of samples
-  double k = 5.0; // the max length of an edge
+  int num_samples; // total number of samples
+  double k; // the max length of an edge
   int goal_bias; // the frequency considering goal point as one of the random points
 
-  std::vector<Node> rrtree;  
+  std::vector<Node> rrtree; 
+
+  std::default_random_engine generator; 
+
 };
 
 }

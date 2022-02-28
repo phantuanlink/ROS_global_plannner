@@ -6,5 +6,10 @@
 
     <node type="rviz" name="rviz" pkg="rviz" args="-d $(arg rviz_config)"/>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
-    <node type="rrt_planner_node" name="rrt_planner" pkg="rrt_planner" output="screen"/>
+    <node type="rrt_planner_node" name="rrt_planner" pkg="rrt_planner" output="screen">
+        <param name="max_samples_number" value="10000" />
+        <param name="max_step" value="20.0"/>
+        <param name="goal_bias" value="5" />
+    </node>
+        
 </launch>

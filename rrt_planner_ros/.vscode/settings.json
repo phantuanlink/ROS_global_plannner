@@ -91,6 +91,7 @@
         "viewport": "cpp",
         "primitiveset": "cpp",
         "mixinvector": "cpp",
-        "plane": "cpp"
+        "plane": "cpp",
+        "camera": "cpp"
     }
 }

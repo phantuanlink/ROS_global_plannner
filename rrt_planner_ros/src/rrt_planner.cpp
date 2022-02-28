@@ -16,8 +16,9 @@ RRTPlanner::RRTPlanner(ros::NodeHandle * node)
   private_nh_.param<std::string>("path_topic", path_topic, "/path");
 
   // Get Parameters HAHAHAH, I totally forgot about this
-  private_nh_.param("max_samples_number", num_samples, 1000);
-  private_nh_.param("max_step", k, 5.0);
+  private_nh_.param<int>("max_samples_number", num_samples, 500);
+  private_nh_.param<double>("max_step", k, 25.0);
+  private_nh_.param<int>("goal_bias", goal_bias, 3);
 
   // Subscribe to map topic
   map_sub_ = nh_->subscribe<const nav_msgs::OccupancyGrid::Ptr &>(
@@ -132,6 +133,13 @@ void RRTPlanner::plan()
 
   // TODO: Fill out this function with the RRT algorithm logic to plan a collision-free
   //       path through the map starting from the initial pose and ending at the goal pose
+
+  // bool informed = false;
+  // if (goal_bias > 0)
+  // {
+  //   informed = true;
+  // }
+  
   int height_ = map_->rows;
   int width_ = map_->cols;
 
@@ -146,11 +154,15 @@ void RRTPlanner::plan()
 
   Point2D rand_point;
   int nearest_node_idx;
+  Point2D nearest_point;
   Point2D new_point; 
   int count_iterations = 0; 
 
+  std::uniform_int_distribution<int> dis_height(0, height_);
+  std::uniform_int_distribution<int> dis_width(0, width_);
+
   //Now lets make the tree
-  while (count_iterations < 1000)
+  while (count_iterations < num_samples)//num_samples
   {
     if (count_iterations%10 == 0)
     {
@@ -159,23 +171,45 @@ void RRTPlanner::plan()
 
     do
     {
-      rand_point = randomPointGenerator(height_, width_);
+      ROS_INFO("New iteration");
+      ROS_INFO("STEP1: geneate random point");
+      //rand_point = randomPointGenerator(dis_height, dis_width);
+      int rand_point_x = dis_width(generator);
+      int rand_point_y = dis_height(generator);
+      rand_point.x(rand_point_x);
+      rand_point.y(rand_point_y);
+      // if (informed && (count_iterations%goal_bias == 0))
+      // {
+      //   rand_point = goal_;   // Take the goal as a random point to get to the goal faster
+      // }
       std::cout << rand_point.x() << "  " << rand_point.y() << std::endl;
 
+      ROS_INFO("STEP2: Find the nearest node index");
       nearest_node_idx = findNearestNode(rand_point);
       std::cout << "The nearest Node index is " << nearest_node_idx << std::endl;
+      nearest_point = rrtree[nearest_node_idx].point_;
+      std::cout << nearest_point.x() << "   " << nearest_point.y() << std::endl;
 
-      new_point = findNew(rand_point, rrtree.at(nearest_node_idx).point_);
+      ROS_INFO("STEP3: Find new point");
+      new_point = findNew(rand_point, nearest_point);
+      std::cout << "New Points "<< std::endl;
+      std::cout << new_point.x() << "   " << new_point.y()  << std::endl;
+      std::cout << distance(new_point, nearest_point)  << std::endl;
 
-    } while (!notCollision(rrtree.at(nearest_node_idx).point_, new_point));
+      ROS_INFO("STEP4: Check the edge");
+
+    } while (!isCollisionFreeLine(nearest_point, new_point));
+    
     
     Node new_node(new_point, nearest_node_idx); //Make a new node with the point created and its parentID
+    ROS_INFO("STEP5: Create the node and visualization");
+
     drawCircle(new_point, 1, cv::Scalar(12, 255, 43));
-    drawLine(new_point, rrtree[nearest_node_idx].point_,cv::Scalar(0, 0, 0));
+    drawLine(new_point, nearest_point,cv::Scalar(0, 0, 0));
     rrtree.push_back(new_node);
 
     //Now check whether it is reached by the goal
-    if ((distance(new_point, goal_) <= k) && (notCollision(new_point, goal_)))
+    if ((distance(new_point, goal_) <= k) && (isCollisionFreeLine(new_point, goal_)))
     {
       ROS_INFO("YAYYYYYY!! THE GOAL IS REACHED!!! NICE");
       ROS_INFO("SOLUTION IS FOUND AFTER %d ITERATIONS", rrtree.size());
@@ -195,38 +229,27 @@ void RRTPlanner::plan()
     publishPath(path);
   } else {
     ROS_INFO("THERE IS NO SOLUTION THO!!! try with more samples and smaller step size please!!");
+    std::cout << rrtree.size() << std::endl;
   }
 }
 
-Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
-{
-  // std::default_random_engine generator;
-  // std::uniform_int_distribution<int> dis_height(0, height_);
-  // std::uniform_int_distribution<int> dis_width(0, width_);
+// Point2D RRTPlanner::randomPointGenerator(const std::uniform_int_distribution<int>& dis_height_, const std::uniform_int_distribution<int>& dis_width)
+// {
+//   Point2D rand_pt;
 
-  Point2D rand_pt;
-  bool isFree = false;
-
-  do
-  {
-    // int x = dis_width(generator);
-    // int y = dis_height(generator);
-    int x = rand()%width_;
-    int y = rand()%height_;
-    rand_pt.x(x);
-    rand_pt.y(y);
-<<<<<<< HEAD
-    isFree = isPointUnoccupied(rand_pt);
-    std::cout << "point is free or not" << isFree << std::endl;
-  } while (!isFree);
-||||||| merged common ancestors
-  } while (isPointUnoccupied(rand_pt));
-=======
-  } while (!isPointUnoccupied(rand_pt));
->>>>>>> 6c6ecceff29da71f7ff2215aca5cfa7dc7477e6f
+//   do
+//   {
+//     int x = dis_width(generator);
+//     int y = dis_height(generator);
+//     // int x = rand()%width_;
+//     // int y = rand()%height_;
+//     rand_pt.x(x);
+//     rand_pt.y(y);
+//     //std::cout << "point is free or not " << isFree << std::endl;
+//   } while (!isPointUnoccupied(rand_pt));
   
-  return rand_pt;
-}
+//   return rand_pt;
+// }
 
 int RRTPlanner::findNearestNode(Point2D rand_point)
 {
@@ -247,9 +270,9 @@ int RRTPlanner::findNearestNode(Point2D rand_point)
 Point2D RRTPlanner::findNew(Point2D rand_point, Point2D nearest_point)
 {
   Point2D new_point;
-  std::cout << "Max_length" << k << std::endl;
+  std::cout << "Max_length " << k << std::endl;
   double length = k;
-  double theta = atan((rand_point.y()- nearest_point.y())/(rand_point.x()- nearest_point.x()));
+  double theta = atan2((double)(rand_point.y()- nearest_point.y()),(double)(rand_point.x()- nearest_point.x()));
   std::cout << theta << std::endl;
   if (distance(rand_point, nearest_point) < k)
   {
@@ -258,31 +281,31 @@ Point2D RRTPlanner::findNew(Point2D rand_point, Point2D nearest_point)
   new_point.x(nearest_point.x() + length*cos(theta));
   new_point.y(nearest_point.y() + length*sin(theta));
 
-  std::cout << "New Points "<< std::endl;
-  std::cout << new_point.x() << "   " << new_point.y()  << std::endl;
-  
+  // std::cout << "New Points "<< std::endl;
+  // std::cout << new_point.x() << "   " << new_point.y()  << std::endl;
   drawCircle(new_point, 2,cv::Scalar(12, 255, 43));
 
   return new_point;
 }
 
 
-bool RRTPlanner::notCollision(Point2D a, Point2D b)
+bool RRTPlanner::isCollisionFreeLine(Point2D a, Point2D b)
 {
   Point2D mid;
   int del_x = b.x() - a.x();
   int del_y = b.y() - a.y();
 
   int i = 1;
-  int num = 5; //the number of middle points
+  int num = (int)k/2; //the number of middle points (including the new point itself)
   while (i <= num)
   {
-    mid.x(a.x() + del_x * i/(num+1));
-    mid.y(a.y() + del_y * i/(num+1));
+    mid.x(a.x() + del_x * i/(num));
+    mid.y(a.y() + del_y * i/(num));
     if (!isPointUnoccupied(mid))
     {
       return false;
     }
+    i++;
   }
   std::cout << "Oh it is not obstructed, yay " << std::endl;
   return true;
@@ -344,11 +367,9 @@ bool RRTPlanner::isPointUnoccupied(const Point2D & p)
 {
   //transform index of points into map_grid_
   
-  int x_grid = map_grid_->info.height - p.x() - 1;
-  int y_grid = p.y();
-
   // TODO: Fill out this function to check if a given point is occupied/free in the map
-  if (map_grid_->data[toIndex(x_grid, y_grid)])
+
+  if (map_grid_->data[toIndex(p.x(), p.y())])
   {
     return false;
   }
@@ -386,6 +407,7 @@ void RRTPlanner::displayMapImage(int delay)
 
 void RRTPlanner::drawCircle(Point2D & p, int radius, const cv::Scalar & color)
 {
+  //cv::Point(p.y(), map_grid_->info.height - p.x() - 1)
   cv::circle(
     *map_,
     cv::Point(p.y(), map_grid_->info.height - p.x() - 1),
