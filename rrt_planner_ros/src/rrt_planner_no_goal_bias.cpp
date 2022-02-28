@@ -139,8 +139,6 @@ void RRTPlanner::plan()
   {
     informed = false;
   }
-
-  bool isGoalConsiderred; //to check whether goal point is considerred in the iteration
   
   int height_ = map_->rows;
   int width_ = map_->cols;
@@ -160,6 +158,8 @@ void RRTPlanner::plan()
   Point2D new_point; 
   int count_iterations = 0; 
 
+  std::uniform_int_distribution<int> dis_height(0, height_);
+  std::uniform_int_distribution<int> dis_width(0, width_);
 
   //Now lets make the tree
   while (count_iterations < num_samples)//num_samples
@@ -169,24 +169,20 @@ void RRTPlanner::plan()
       ROS_INFO("Interation number %d", rrtree.size());
     }
 
-    isGoalConsiderred = false; //goal point is not considerred YET in this iteration
-
     do
     {
       ROS_INFO("New iteration");
       ROS_INFO("STEP1: geneate random point");
-      // rand_point = randomPointGenerator(height_, width_);
-
-      if (informed && ((rrtree.size()%goal_bias) == 0) && !isGoalConsiderred)
-      {
-        rand_point.x(goal_.x());   // Take the goal as a random point to get to the goal faster
-        rand_point.y(goal_.y());
-        isGoalConsiderred = true;
-      }
-      else
-      {
-        rand_point = randomPointGenerator(height_, width_);
-      }
+      //rand_point = randomPointGenerator(dis_height, dis_width);
+      int rand_point_x = dis_width(generator);
+      int rand_point_y = dis_height(generator);
+      rand_point.x(rand_point_x);
+      rand_point.y(rand_point_y);
+      // if (informed && ((rrtree.size()%goal_bias) == 0))
+      // {
+      //   rand_point.x(goal_.x());   // Take the goal as a random point to get to the goal faster
+      //   rand_point.y(goal_.y());
+      // } 
       std::cout << rand_point.x() << "  " << rand_point.y() << std::endl;
 
       ROS_INFO("STEP2: Find the nearest node index");
@@ -238,25 +234,23 @@ void RRTPlanner::plan()
   }
 }
 
-Point2D RRTPlanner::randomPointGenerator(int height_, int width_)
-{
-  Point2D rand_pt;
-  std::uniform_int_distribution<int> dis_height(0, height_);
-  std::uniform_int_distribution<int> dis_width(0, width_);
+// Point2D RRTPlanner::randomPointGenerator(const std::uniform_int_distribution<int>& dis_height_, const std::uniform_int_distribution<int>& dis_width)
+// {
+//   Point2D rand_pt;
 
-  do
-  {
-    int x = dis_width(generator);
-    int y = dis_height(generator);
-    // int x = rand()%width_;
-    // int y = rand()%height_;
-    rand_pt.x(x);
-    rand_pt.y(y);
-    //std::cout << "point is free or not " << isFree << std::endl;
-  } while (!isPointUnoccupied(rand_pt));
+//   do
+//   {
+//     int x = dis_width(generator);
+//     int y = dis_height(generator);
+//     // int x = rand()%width_;
+//     // int y = rand()%height_;
+//     rand_pt.x(x);
+//     rand_pt.y(y);
+//     //std::cout << "point is free or not " << isFree << std::endl;
+//   } while (!isPointUnoccupied(rand_pt));
   
-  return rand_pt;
-}
+//   return rand_pt;
+// }
 
 int RRTPlanner::findNearestNode(Point2D rand_point)
 {

@@ -92,6 +92,12 @@
         "primitiveset": "cpp",
         "mixinvector": "cpp",
         "plane": "cpp",
-        "camera": "cpp"
+        "camera": "cpp",
+        "bufferobject": "cpp",
+        "image": "cpp",
+        "texture": "cpp",
+        "buffered_value": "cpp",
+        "fast_back_stack": "cpp",
+        "node": "cpp"
     }
 }

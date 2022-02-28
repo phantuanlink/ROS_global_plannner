@@ -187,7 +187,7 @@ private:
   /**
    * Generate points in C_free
    */
-  //Point2D randomPointGenerator(const std::uniform_int_distribution<int>& dis_height_, const std::uniform_int_distribution<int>& dis_width);
+  Point2D randomPointGenerator(int height_, int width_);
 
   /**
    * Find the index of the nearest Node to the randon point
