@@ -310,6 +310,7 @@ bool RRTPlanner::isCollisionFreeLine(Point2D a, Point2D b)
     mid.y(a.y() + del_y * i/(num));
     if (!isPointUnoccupied(mid))
     {
+      std::cout << "Opps!! Obstructed " << std::endl;
       return false;
     }
     i++;
